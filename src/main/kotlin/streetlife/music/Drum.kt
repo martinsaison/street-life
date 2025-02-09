@@ -1,4 +1,4 @@
-package music
+package streetlife.music
 
 enum class Drum(val pitch: Int) {
     ACOUSTIC_BASS_DRUM(35),

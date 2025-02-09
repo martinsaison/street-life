@@ -1,25 +1,23 @@
-package music
+package streetlife.music
 
 import java.util.regex.Pattern
 
-open class Chunk(private val lines: List<ClickSequence> = emptyList(), private val mappings: Map<String, Int> = emptyMap()) {
+open class Chunk(
+    private val lines: List<ClickSequence> = emptyList(),
+    private val mappings: Map<String, Int> = emptyMap()
+) {
 
     operator fun plus(semitones: Int): Chunk {
-        return Chunk(lines.map { ClickSequence(if (it.pitch < 0) it.pitch else it.pitch + semitones, it.sequence) }, mappings)
+        return Chunk(
+            lines.map { ClickSequence(if (it.pitch < 0) it.pitch else it.pitch + semitones, it.sequence) },
+            mappings
+        )
     }
 
     operator fun times(value: Int): Chunk {
         var chunk = Chunk(lines, mappings)
-        (1..value - 1).forEach { chunk = chunk then Chunk(lines, mappings) }
+        (1..<value).forEach { _ -> chunk = chunk then Chunk(lines, mappings) }
         return chunk
-    }
-
-    fun of(clickSequence: ClickSequence): Chunk {
-        return or(clickSequence)
-    }
-
-    fun of(pitch: String, sequence: String): Chunk {
-        return or(pitch, sequence)
     }
 
     open fun or(clickSequence: ClickSequence): Chunk {
@@ -36,19 +34,20 @@ open class Chunk(private val lines: List<ClickSequence> = emptyList(), private v
         }
     }
 
-    infix fun or(second: Chunk): Chunk {
+    private infix fun or(second: Chunk): Chunk {
         val size = maxOf(
-                lines.map { it.sequence.length }.max() ?: 0,
-                second.lines.map { it.sequence.length }.max() ?: 0
+            lines.maxOfOrNull { it.sequence.length } ?: 0,
+            second.lines.maxOfOrNull { it.sequence.length } ?: 0
         )
         val pitches = lines.map { it.pitch }.toSet().plus(
-                second.lines.map { it.pitch }
+            second.lines.map { it.pitch }
         )
-        val newLines: List<ClickSequence> = pitches.map {
-            val p = it
-            val firstSequence = (lines.filter { it.pitch == p }.map { it.sequence }.firstOrNull() ?: "").padEnd(size, ' ')
-            val secondSequence = (second.lines.filter { it.pitch == p }.map { it.sequence }.firstOrNull() ?: "").padEnd(size, ' ')
-            ClickSequence(it, combineSequences(firstSequence, secondSequence))
+        val newLines: List<ClickSequence> = pitches.map { p ->
+            val firstSequence =
+                (lines.filter { it.pitch == p }.map { it.sequence }.firstOrNull() ?: "").padEnd(size, ' ')
+            val secondSequence =
+                (second.lines.filter { it.pitch == p }.map { it.sequence }.firstOrNull() ?: "").padEnd(size, ' ')
+            ClickSequence(p, combineSequences(firstSequence, secondSequence))
         }.sortedByDescending { it.pitch }
         return Chunk(newLines, mappings)
     }
@@ -62,16 +61,17 @@ open class Chunk(private val lines: List<ClickSequence> = emptyList(), private v
     }
 
     infix fun then(second: Chunk): Chunk {
-        val firstSize = lines.map { it.sequence.length }.max() ?: 0
-        val secondSize = second.lines.map { it.sequence.length }.max() ?: 0
+        val firstSize = lines.maxOfOrNull { it.sequence.length } ?: 0
+        val secondSize = second.lines.maxOfOrNull { it.sequence.length } ?: 0
         val pitches = lines.map { it.pitch }.toSet().plus(
-                second.lines.map { it.pitch }
+            second.lines.map { it.pitch }
         )
-        val newLines: List<ClickSequence> = pitches.map {
-            val p = it
-            val firstSequence = (lines.filter { it.pitch == p }.map { it.sequence }.firstOrNull() ?: "").padEnd(firstSize, ' ')
-            val secondSequence = (second.lines.filter { it.pitch == p }.map { it.sequence }.firstOrNull() ?: "").padEnd(secondSize, ' ')
-            ClickSequence(it, firstSequence + secondSequence)
+        val newLines: List<ClickSequence> = pitches.map { p ->
+            val firstSequence =
+                (lines.filter { it.pitch == p }.map { it.sequence }.firstOrNull() ?: "").padEnd(firstSize, ' ')
+            val secondSequence =
+                (second.lines.filter { it.pitch == p }.map { it.sequence }.firstOrNull() ?: "").padEnd(secondSize, ' ')
+            ClickSequence(p, firstSequence + secondSequence)
         }.sortedByDescending { it.pitch }
         return Chunk(newLines, mappings + second.mappings)
     }
@@ -79,7 +79,7 @@ open class Chunk(private val lines: List<ClickSequence> = emptyList(), private v
     fun getNotes(): List<Note> {
         return lines.filter { it.pitch >= 0 }.map {
             val pitch = it.pitch
-            val p = Pattern.compile("""([a-zA-Z\.'][\-]*|[ ]+)""")
+            val p = Pattern.compile("""([a-zA-Z.']-*| +)""")
             val m = p.matcher(it.sequence)
             val notes = mutableListOf<Note>()
             while (m.find()) {
@@ -87,10 +87,10 @@ open class Chunk(private val lines: List<ClickSequence> = emptyList(), private v
                     notes.add(Note(m.start() * 1.0, (m.end() - m.start()) * 1.0, pitch, m.group()))
             }
             notes
-        }.flatMap { it }
+        }.flatten()
     }
 
-    fun map(key: String, pitch: Int): Chunk {
+    private fun map(key: String, pitch: Int): Chunk {
         val newMappings = mappings + Pair(key, pitch)
         return Chunk(lines, newMappings)
     }
@@ -101,22 +101,22 @@ open class Chunk(private val lines: List<ClickSequence> = emptyList(), private v
 
     private fun strToPitch(pitch: String): Int {
         if (mappings.contains(pitch))
-            return mappings[pitch]!!
+            return mappings[pitch] ?: 0
         val p = pitch.trim()
         if (p.length < 3) return -20
-        val note = when (p[0].toLowerCase()) {
-            'c' -> 0
-            'd' -> 2
-            'e' -> 4
-            'f' -> 5
-            'g' -> 7
-            'a' -> 9
-            'b' -> 11
+        val note = when (p[0].lowercase()) {
+            "c" -> 0
+            "d" -> 2
+            "e" -> 4
+            "f" -> 5
+            "g" -> 7
+            "a" -> 9
+            "b" -> 11
             else -> 0
         }
-        val alteration = when (p[1].toLowerCase()) {
-            'b', 'f' -> -1
-            '#', 's' -> 1
+        val alteration = when (p[1].lowercase()) {
+            "b", "f" -> -1
+            "#", "s" -> 1
             else -> 0
         }
         val octave = p.substring(2).toInt()

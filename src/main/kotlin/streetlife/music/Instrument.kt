@@ -1,4 +1,4 @@
-package music
+package streetlife.music
 
 enum class Instrument(val pitch: Int) {
     PIANO(0),

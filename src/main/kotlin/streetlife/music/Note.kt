@@ -1,6 +1,6 @@
-package music
+package streetlife.music
 
-class Note(val start: Double, val length: Double, val pitch: Int, val sound: String) {
+class Note(private val start: Double, private val length: Double, val pitch: Int, private val sound: String) {
     fun timeStart(): Double {
         return timeStartLength().first
     }
@@ -10,7 +10,7 @@ class Note(val start: Double, val length: Double, val pitch: Int, val sound: Str
         return se.first + se.second
     }
 
-    fun timeStartLength(): Pair<Double, Double> {
+    private fun timeStartLength(): Pair<Double, Double> {
         return when (sound[0]) {
             '.' -> Pair(start, length / 8)
             '\'' -> Pair(start + length * 7 / 8, length / 8)
